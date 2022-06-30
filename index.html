@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Index</title>
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <script src="js/jquery.js">
+    </script>
+    <style>
+        #data{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: auto;
+        }
+        .table{
+            width: 80% !important;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+  <header id="header" class="form-control">
+      <a class="link-info m-2" href="login.html">Login</a>
+      <a class="link-info m-2" style="cursor: pointer" id="login_logout" >Logout</a>
+    <a class="link-info m-2"  href="register.html">Register</a>
+    <button class="btn btn-primary m-2" id="load_user">Load Users</button>
+  </header>
+  <section id="data" class="mt-5">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+
+        </tbody>
+    </table>
+  </section>
+</div>
+</body>
+<script>
+    $('#load_user').click(function()
+    {
+        var url = "https://desofmeservice.herokuapp.com" + "/user/list";
+        var accessToken = localStorage.getItem("accessToken");
+        console.log(accessToken);
+        $.ajax({
+            url: url,
+            type: "GET",
+            dataType:"json",
+            processData: false,
+            contentType: "application/json; charset=UTF-8",
+            beforeSend: function(request) {
+                request.setRequestHeader("Accept", "*/*");
+                request.setRequestHeader("Access-Control-Allow-Origin", "*");
+                request.setRequestHeader("Access-Control-Allow-Methods", "GET,POST,PUT");
+                request.setRequestHeader("Authorization", "Bearer "+accessToken);
+            },
+            success:function (response) {
+                if(response.status['code']==100){
+                    $('#tbody').html('');
+                    for(let i = 0; i < response.response.length; i++){
+                        var id = response.response[i]['id'];
+                        var name = response.response[i]['name'];
+                        var email = response.response[i]['email'];
+                        var child = '<tr><td>'+id+'</td><td>'+name+'</td><td>'+email+'</td></tr>';
+                        $('#tbody').append(child);
+                    }
+                } else if(response.status['code']==114){
+                    if(localStorage.getItem("userId")==null){
+                        location.href = "login.html";
+                    }
+                    refreshToken();
+                    $('#load_user').click();
+                }
+            }
+        });
+    });
+
+    function refreshToken(){
+        var url = "https://desofmeservice.herokuapp.com" + "/auth/refresh";
+        var userId = localStorage.getItem("userId");
+        var refreshToken = localStorage.getItem("refreshToken");
+        $.ajax({
+            url: url,
+            type: "POST",
+            dataType:"json",
+            data: JSON.stringify( { "userId": userId, "refreshToken": refreshToken} ),
+            processData: false,
+            contentType: "application/json; charset=UTF-8",
+            beforeSend: function(request) {
+                request.setRequestHeader("Accept", "*/*");
+                request.setRequestHeader("Access-Control-Allow-Origin", "*");
+                request.setRequestHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+            },success:function (response) {
+              if(response.status['code'] == 100){
+                  localStorage.setItem("accessToken", response.response['accessToken']);
+                  localStorage.setItem("refreshToken", response.response['refreshToken']);
+              }else{
+                  location.href = "login.html";
+              }
+            }
+
+        })
+    }
+
+    $('#login_logout').click(function (){
+        localStorage.setItem("accessToken", null);
+        localStorage.setItem("refreshToken", null);
+        localStorage.setItem("userId", null);
+        location.href = "login.html";
+    })
+</script>
+</html>
